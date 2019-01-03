@@ -103,5 +103,8 @@ venv.bak/
 # mypy
 .mypy_cache/
 
-# Json files (so you don't expose your credentials/anything personal to the outside world)
+# json files (so you don't expose your credentials/anything personal to the outside world)
 *.json
+
+# swp files (this should be obvious to those who know what .swp files are)
+*.swp
