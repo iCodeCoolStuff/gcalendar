@@ -102,3 +102,6 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# Json files (so you don't expose your credentials/anything personal to the outside world)
+*.json
