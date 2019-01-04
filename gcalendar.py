@@ -1,15 +1,17 @@
+import calendar
 import datetime
 import json
-import pathlib
 import pprint
-import re
 import time
+import re
+
+import click
 
 from googleapiclient.discovery import build
 from httplib2 import Http
 from oauth2client import file, client, tools
 
-date_pattern = re.compile('(\d{4})-(\d{2})-(\d{2})')
+DATE_PATTERN = re.compile(r'(\d{4}).(\d{2}).(\d{2})')
 
 def RFC_from_dt(date, time):
     return date + 'T' + time + 'Z'
@@ -17,20 +19,34 @@ def RFC_from_dt(date, time):
 def RFC_from_UTC(utc):
     return utc.isoformat() + 'Z'
 
-def get_current_date():
-    date = re.search(date_pattern, str(datetime.datetime.today()))
-    return date.group(0)
-
 def get_utc_offset():
     return time.localtime().tm_gmtoff / 3600
 
 def get_min_today():
     today = datetime.datetime.today()
-    return datetime.datetime(today.year, today.month, today.day, 0, 0, 0) 
+    today.hour        = 0
+    today.second      = 0
+    today.microsecond = 0
+    return today 
 
 def get_max_today():
     today = datetime.datetime.today()
-    return datetime.datetime(today.year, today.month, today.day, 23, 59, 59)
+    today.hour        = 23
+    today.second      = 59
+    today.microsecond = 59
+    return today 
+
+def get_min_time(dt):
+    dt.hour        = 0
+    dt.second      = 0
+    dt.microsecond = 0
+    return dt 
+
+def get_max_time(dt):
+    dt.hour        = 23
+    dt.second      = 59
+    dt.microsecond = 59
+    return dt 
 
 def dt_to_gmt(dt):
     offset = get_utc_offset()
@@ -43,7 +59,9 @@ def dt_to_gmt(dt):
     else:
         return dt
 
-def get_current_events(service):
+def get_events(service):
+    today = datetime.datetime.today() 
+
     mintime = RFC_from_UTC(dt_to_gmt(get_min_today()))
     maxtime = RFC_from_UTC(dt_to_gmt(get_max_today()))
 
@@ -54,17 +72,21 @@ def get_current_events(service):
         return None
     return items
 
-def save(events, filename):
+def get_days_of_week():
+
+
+def save_events(events, filename):
     with open(filename, 'w') as f:
         json.dump(events, f)
 
-def load(filename):
+def load_events(filename):
     with open(filename, 'r') as f:
         items = json.load(f)
         return items
 
-def main():
-    """
+@click.group()
+@click.pass_context
+def cli(ctx):
     store = file.Storage('token.json')
     creds = store.get()
     if not creds or creds.invalid:
@@ -72,21 +94,15 @@ def main():
         creds = tools.run_flow(flow, store)
     service = build('calendar', 'v3', http=creds.authorize(Http()))
 
-    events = get_current_events(service)
-    """
+    ctx.obj = service
 
-    """
-    print('Getting today\'s calendar events')
-    events = get_current_events(service)
-    if events is None:
-        print('No upcoming events found.')
-    for event in events:
-        start = event['start'].get('dateTime', event['start'].get('date'))
-        print(start, event['summary'])
-    """
+@cli.command()
+@click.option('--day', type=str, default='today')
+@click.argument('schedule_name', type=str)
+@click.pass_context
+def save(ctx, schedule_name, day):
+    events = get_current_events(ctx.obj)
     
-    items = load('data.json')
-    print(items)
 
 if __name__ == '__main__':
-    main()
+    cli()
