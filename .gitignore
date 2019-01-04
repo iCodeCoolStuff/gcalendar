@@ -108,3 +108,6 @@ venv.bak/
 
 # swp files (this should be obvious to those who know what .swp files are)
 *.swp
+
+# quickstart.py 
+quickstart.py

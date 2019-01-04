@@ -13,7 +13,7 @@ from oauth2client import file, client, tools
 
 #Start library
 
-DATE_PATTERN = re.compile(r'(\d{4}).(\d{2}).(\d{2})')
+DATE_PATTERN = re.compile(r'(\d{4})[:/.-](\d{1,2})[:/.-](\d{1,2})')
 
 WEEKDAYS = {
     'sunday':    0, 
@@ -36,29 +36,17 @@ def get_utc_offset():
 
 def get_min_today():
     today = datetime.datetime.today()
-    today.hour        = 0
-    today.second      = 0
-    today.microsecond = 0
-    return today 
+    return datetime.datetime(today.year, today.month, today.day, 0, 0, 0,)
 
 def get_max_today():
     today = datetime.datetime.today()
-    today.hour        = 23
-    today.second      = 59
-    today.microsecond = 59
-    return today 
+    return datetime.datetime(today.year, today.month, today.day, 23, 59, 59)
 
 def get_min_time(dt):
-    dt.hour        = 0
-    dt.second      = 0
-    dt.microsecond = 0
-    return dt 
+    return datetime.datetime(dt.year, dt.month, dt.day, 0, 0, 0,)
 
 def get_max_time(dt):
-    dt.hour        = 23
-    dt.second      = 59
-    dt.microsecond = 59
-    return dt 
+    return datetime.datetime(dt.year, dt.month, dt.day, 23, 59, 59)
 
 def dt_to_gmt(dt):
     offset = get_utc_offset()
@@ -72,8 +60,8 @@ def dt_to_gmt(dt):
         return dt
 
 def get_events(service, dt):
-    mintime = RFC_from_UTC(dt_to_gmt(dt))
-    maxtime = RFC_from_UTC(dt_to_gmt(dt))
+    mintime = RFC_from_UTC(dt_to_gmt(get_min_time(dt)))
+    maxtime = RFC_from_UTC(dt_to_gmt(get_max_time(dt)))
 
     result = service.events().list(calendarId='primary', timeMin=mintime, timeMax=maxtime,
                                     singleEvents=True, orderBy='startTime').execute()
@@ -93,17 +81,18 @@ def get_days_of_week(dt):
     offset = 0
     while date != 6:
         offset -= 1 
-        date -= 1
+        dt2 = dt + datetime.timedelta(days=offset)
+        date = calendar.weekday(dt2.year, dt2.month, dt2.day)
     days = []
     for i in range(6):
-        days.append(datetime.datetime(dt.year, dt.month, dt.day+(i+offset)))
+        days.append(datetime.datetime(dt2.year, dt2.month, dt2.day) + datetime.timedelta(days=(offset+i)))
     return days
 
 def dt_from_date(date):
     dt = datetime.datetime(
-            date.group(1),
-            date.group(2), 
-            date.group(3))
+            int(date.group(1)),
+            int(date.group(2)), 
+            int(date.group(3)))
     return dt
 
 def save_events(events, filename):
@@ -127,7 +116,7 @@ def cli(ctx):
         creds = tools.run_flow(flow, store)
     service = build('calendar', 'v3', http=creds.authorize(Http()))
 
-    ctx.ensure_object(dict)
+    ctx.obj = {}
     ctx.obj['service'] = service
     ctx.obj['week']    = get_days_of_week(datetime.datetime.today()) 
 
@@ -137,17 +126,17 @@ def cli(ctx):
 @click.pass_context
 def save(ctx, schedule_name, day):
     if day == 'today':
-        events = get_events(ctx.obj, datetime.datetime.today())
+        events = get_events(ctx.obj['service'], datetime.datetime.today())
     elif day in WEEKDAYS.keys():
-        events = get_events(ctx.obj, ctx.obj['week'][WEEKDAYS[day]])
+        events = get_events(ctx.obj['service'], ctx.obj['week'][WEEKDAYS[day]])
     elif re.search(DATE_PATTERN, day):
         date = re.search(DATE_PATTERN, day)
-        events = get_events(ctx.obj, dt_from_date(date))
+        events = get_events(ctx.obj['service'], dt_from_date(date))
     else:
-        print('something went wrong with the date')
+        print('')
         return 1
 
-    save_events(events, schedule)
+    save_events(events, schedule_name)
     print(f'Saved {schedule_name} to {schedule_name}.json')
     return 0
 

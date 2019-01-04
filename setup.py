@@ -2,8 +2,8 @@ from setuptools import setup
 
 setup(
     name='gcalendar',
-    version='0.1'
-    pymodules=['gcalendar']
+    version='0.1',
+    py_modules=['gcalendar'],
     description='A calendar tool for Google Calendar using python',
     author='iCodeCoolStuff',
     license='ISC',
@@ -11,9 +11,9 @@ setup(
         'click', 
         'google-api-python-client', 
         'oauth2client',
-    ]
+    ],
     entry_points='''
         [console_scripts]
-        save:cli
-    '''
+        gcalendar=gcalendar:cli
+    ''',
 )
