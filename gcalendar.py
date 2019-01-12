@@ -481,6 +481,7 @@ def ask_for_confirmation(message):
 @click.group()
 @click.pass_context
 def cli(ctx):
+    '''A command line tool for Google Calendar'''
     store = file.Storage('token.json')
     creds = store.get()
     if not creds or creds.invalid:
@@ -501,6 +502,7 @@ def cli(ctx):
 @click.argument('filename', type=str)
 @click.pass_context
 def save(ctx, day, filename):
+    '''Save a schedule of events to a file'''
     dt = dt_from_day(day)
     if not dt:
         print('Invalid date. Must either be a day of the week or of the form YYYY-MM-DD.')
@@ -532,6 +534,7 @@ def save(ctx, day, filename):
 @click.argument('day', type=str) 
 @click.pass_context
 def upload(ctx, filename, day):
+    '''Upload events from a file to a specific date'''
     dt = dt_from_day(day)
     if not dt:
         print('Invalid date. Must either be a day of the week or of the form YYYY-MM-DD.')
@@ -544,8 +547,6 @@ def upload(ctx, filename, day):
         print(f'No events found in {filename}.')
         return 3
 
-    #Check if there are already events in the day time slot and ask the user if 
-    #they wish to overwrite.
     cal_events = get_events(ctx.obj['service'], dt)
     if cal_events:
         confirmed = ask_for_confirmation('There are already events registered for that day. Would you like to overwrite them?')
@@ -561,11 +562,13 @@ def upload(ctx, filename, day):
     return 0
 
 @cli.command()
-@click.option('-f', '--isfilename', is_flag=True)
+@click.option('-f', '--filename', is_flag=True, help='Specifies that the' 
+        + ' name given is a filename')
 @click.argument('name', type=str)
 @click.pass_context
-def list(ctx, name, isfilename):
-    if isfilename:
+def list(ctx, name, filename):
+    '''List events from a file or day'''
+    if filename:
         if not name.endswith('.json'):
             name += '.json'
         exists = pathlib.Path(f'./{name}').is_file()
@@ -596,6 +599,7 @@ def list(ctx, name, isfilename):
 @click.argument('day', type=str)
 @click.pass_context
 def delete(ctx, day):
+    '''Delete events from a specific day'''
     dt = dt_from_day(day)
     if not dt:
         print('Invalid date. Must either be a day of the week or of the form YYYY-MM-DD.')

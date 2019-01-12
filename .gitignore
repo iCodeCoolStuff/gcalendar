@@ -111,3 +111,6 @@ venv.bak/
 
 # quickstart.py 
 quickstart.py
+
+# pypirc files
+*.pypirc
