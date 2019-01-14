@@ -8,6 +8,7 @@ import time
 import re
 import sys
 
+import argparse
 import click
 
 from googleapiclient.discovery import build
@@ -15,7 +16,7 @@ from httplib2 import Http
 from oauth2client import file, client, tools
 
 SCOPES = 'https://www.googleapis.com/auth/calendar'
-CURRENT_DIRECTORY = os.path.dirname(__file__)
+FILE_DIRECTORY = str(pathlib.Path(__file__).parent)
 
 #Start library
 
@@ -483,37 +484,6 @@ def ask_for_confirmation(message):
     else:
         return False
 
-def certify_creds(creds):
-    '''Checks to see if credentials are of valid format or not
-    
-    Parameters:
-        creds (str): the path of the credentials
-
-    Returns:
-        bool: whether or not the creds are of valid format
-    '''
-    with open(creds) as f:
-        credentials = json.load(f)
-
-    try:
-        if credentials['installed']:
-            pass
-        if credentials['installed']['project_id']:
-            pass
-        if credentials['installed']['auth_uri']:
-            pass
-        if credentials['installed']['token_uri']:
-            pass
-        if credentials['installed']['auth_provider_x509_cert_url']:
-            pass
-        if credentials['installed']['client_secret']:
-            pass
-        if credentials['installed']['redirect_uris']:
-            pass
-        return True
-    except KeyError:
-        return False
-
 # End library
 
 @click.group()
@@ -521,12 +491,11 @@ def certify_creds(creds):
 def cli(ctx):
     '''A command line tool for Google Calendar'''
 
-    if os.path.isfile(CURRENT_DIRECTORY + '\\token.json'):
-
-        store = file.Storage(CURRENT_DIRECTORY + '\\token.json')
+    if os.path.isfile(FILE_DIRECTORY + '\\token.json'):
+        store = file.Storage(FILE_DIRECTORY + '\\token.json')
         creds = store.get()
         if not creds or creds.invalid:
-            flow = client.flow_from_clientsecrets(CURRENT_DIRECTORY + '\\credentials.json', SCOPES)
+            flow = client.flow_from_clientsecrets('credentials.json', SCOPES)
             creds = tools.run_flow(flow, store)
         try:
             service = build('calendar', 'v3', http=creds.authorize(Http()))
@@ -537,6 +506,8 @@ def cli(ctx):
         ctx.obj = {}
         ctx.obj['service'] = service
         ctx.obj['week'] = get_days_of_week(datetime.datetime.today()) 
+    else:
+        print('You haven\'t been authorized yet. Check github for more info.')
 
 @cli.command()
 @click.argument('day', type=str)
@@ -562,7 +533,7 @@ def save(ctx, day, filename):
             print('Save canceled.')
             return 2
 
-    schedule_path = pathlib.Path(CURRENT_DIRECTORY + '/schedules')
+    schedule_path = pathlib.Path(FILE_DIRECTORY + '/schedules')
     if not os.path.isdir(schedule_path):
         schedule_path.mkdir()
 
@@ -570,7 +541,7 @@ def save(ctx, day, filename):
     if not events:
         print('No events found. Save canceled.')
         return 3
-    save_events(events, CURRENT_DIRECTORY + '\\schedules\\' + filename)
+    save_events(events, FILE_DIRECTORY + '\\schedules\\' + filename)
     print(f'Saved events from {day} to {filename}.')
     return 0
 
@@ -587,7 +558,7 @@ def upload(ctx, filename, day):
 
     if not filename.endswith('.json'):
         filename += '.json'
-    events = load_events(CURRENT_DIRECTORY + '\\schedules\\' + filename)
+    events = load_events(FILE_DIRECTORY + '\\schedules\\' + filename)
     if not events:
         print(f'No events found in {filename}.')
         return 3
@@ -616,9 +587,9 @@ def list(ctx, name, filename):
     if filename:
         if not name.endswith('.json'):
             name += '.json'
-        exists = pathlib.Path(CURRENT_DIRECTORY + '\\schedules\\' + name).is_file()
+        exists = pathlib.Path(FILE_DIRECTORY + '\\schedules\\' + name).is_file()
         if exists:
-            events = load_events(CURRENT_DIRECTORY + '\\schedules\\' + name) 
+            events = load_events(FILE_DIRECTORY + '\\schedules\\' + name) 
             if not events:
                 print('No events found.')
                 return 3
@@ -658,49 +629,44 @@ def delete(ctx, day):
     print(f'Deleted events for {day}.')
 
 @cli.command()
-@click.argument('credentials', type=str)
-def authorize(credentials):
+def list_schedules():
+    '''Lists all of the schedules that are currently saved'''
+
+    if os.path.isdir(FILE_DIRECTORY + '\\schedules'):
+        files = os.listdir(FILE_DIRECTORY + '\\schedules')
+        if files:
+            for f in files:
+                if f.endswith('.json'):
+                    print(f)
+            return 0
+        print('No schedules found.')
+        return 1
+    print('No schedules found.')
+    return 1
+
+@cli.command()
+@click.option('-ci', '--client_id', default=None, help='Your client ID')
+@click.option('-cs', '--client_secret', default=None, help='Your client Secret')
+def authorize(client_id, client_secret):
     '''Authorizes credentials for Google Api'''
 
-    if credentials != 'credentials.json':
-        print(f'{credentials} is not the right file. Please enter credentials.json next time.')
-        return 1
+    #workaround for oauth2 cuz the developers used argparse for some reason
+    #first argument is deleted so argparse doesn't take "authorize" as an argument
+    del sys.argv[0]
 
-    if pathlib.Path('./credentials.json').is_file():
-        confirmed = ask_for_confirmation('You have already been authorized. Would you like to do it again?')
-        if confirmed:
-            pass
-        else:
-            print('Authorization canceled.')
-            return 2
+    tools.argparser.add_argument('-ci', '--client-id', type=str, required=True, help='The client ID of your GCP project')
+    tools.argparser.add_argument('-cs', '--client-secret', type=str, required=True,
+                             help='The client Secret of your GCP project')
+    
+    store = file.Storage(FILE_DIRECTORY + '\\token.json')
+    creds = store.get()
+    if not creds or creds.invalid:
+        args = argparse.ArgumentParser(parents=[tools.argparser]).parse_args()
+        flow = client.OAuth2WebServerFlow(args.client_id, args.client_secret, SCOPES)
+        creds = tools.run_flow(flow, store, tools.argparser.parse_args())
 
-    '''
-    SCRIPT_DIRECTORY = str(pathlib.Path(__file__).parent)
-    CREDENTIALS_PATH = os.path.join(SCRIPT_DIRECTORY, 'credentials.json')
-    TOKEN_PATH = os.path.join(SCRIPT_DIRECTORY, 'token.json')
-
-    if os.path.isfile(CREDENTIALS_PATH):
-        if True:
-            store = file.Storage(TOKEN_PATH)
-
-            creds = store.get()
-            if not creds or creds.invalid:
-                try:
-                    flow = client.flow_from_clientsecrets(CREDENTIALS_PATH, SCOPES)
-                    creds = tools.run_flow(flow, store)
-                except Exception as e:
-                    print(e)
-
-                print('You have been authorized. Feel free to run any commands you would like.')
-                return 0
-    '''
-        else:
-            print('Your credentials are of an invalid format. Check to make sure your credentials.json file is the right one.')
-            return 3
-           
-    else:
-        print('credentials.json does not exist. Make sure you are (or have entered) in the right directory.')
-        return 4
+    print('You have been authorized. Feel free to run any commands you would like.')
+    return 0
 
 if __name__ == '__main__':
     cli()
