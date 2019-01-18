@@ -35,7 +35,7 @@ WEEKDAYS = {
 } 
 
 def RFC_from_UTC(dt):
-    '''Generates a timestamp according to RFC3339.
+    '''Generates a timestamp according to RFC3339
    
     Parameters:
         dt (datetime.datetime): a datetime.datetime object
@@ -61,7 +61,7 @@ def get_min_time(dt):
 
     Returns:
         datetime.datetime: a datetime.datetime object with its hours, 
-            minutes, and seconds set to 0.
+            minutes, and seconds set to 0
     '''
     return datetime.datetime(dt.year, dt.month, dt.day, 0, 0, 0)
 
@@ -73,7 +73,7 @@ def get_max_time(dt):
 
     Returns:
         datetime.datetime: a datetime.datetime object with its hours,
-            minutes, and seconds set to their maximum value.
+            minutes, and seconds set to their maximum value
     '''
     return datetime.datetime(dt.year, dt.month, dt.day, 23, 59, 59)
 
@@ -128,7 +128,7 @@ def date_from_dt(dt):
     return f'{dt.year}-{dt.month}-{dt.day}'
 
 def get_events(service, dt):
-    '''Returns a list of events from a given date.   
+    '''Returns a list of events from a given date   
 
     Parameters:
         service (googleapiclient.discovery.Resource): A Resource object that
@@ -665,7 +665,6 @@ def authorize(client_id, client_secret):
         flow = client.OAuth2WebServerFlow(args.client_id, args.client_secret, SCOPES)
         creds = tools.run_flow(flow, store, tools.argparser.parse_args())
 
-    print('You have been authorized. Feel free to run any commands you would like.')
     return 0
 
 if __name__ == '__main__':

@@ -8,7 +8,6 @@ setup(
     author='iCodeCoolStuff',
     license='MIT',
     install_requires=[
-        'argparse',
         'click', 
         'google-api-python-client', 
         'oauth2client',
