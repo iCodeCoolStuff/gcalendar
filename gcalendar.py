@@ -559,6 +559,9 @@ def upload(ctx, filename, day):
 
     if not filename.endswith('.json'):
         filename += '.json'
+    if not os.path.exists(FILE_DIRECTORY + '\\schedules\\' + filename):
+        print(f'{filename} does not exist.')
+        return 4
     events = load_events(FILE_DIRECTORY + '\\schedules\\' + filename)
     if not events:
         print(f'No events found in {filename}.')
