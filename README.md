@@ -33,7 +33,7 @@ Supported Commands:
   authorize       Authorizes credentials for Google Api
   delete          Delete events from a specific day
   list            List events from a file or day
-  list-schedules  Lists all of the schedules that are currently saved
+  list_schedules  Lists all of the schedules that are currently saved
   save            Save a schedule of events to a file
   upload          Upload events from a file to a specific date
 ```

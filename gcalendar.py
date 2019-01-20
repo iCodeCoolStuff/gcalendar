@@ -616,11 +616,23 @@ def list(ctx, name, filename):
     return 0
 
 @cli.command()
-@click.argument('day', type=str)
+@click.argument('name', type=str)
+@click.option('-f', 'isfile', is_flag=True, help='specifies that day is a filename')
 @click.pass_context
-def delete(ctx, day):
+def delete(ctx, name, isfile):
     '''Delete events from a specific day'''
-    dt = dt_from_day(day)
+    if isfile:
+        if not name.endswith('.json'):
+            name += '.json'
+        if not os.path.exists(FILE_DIRECTORY + '\\schedules\\' + name):
+            print(f'{filename} does not exist.')
+            return 4
+        else:
+            os.remove(FILE_DIRECTORY + '\\schedules\\' + name)
+            print(f'{filename} removed.')
+            return 0
+
+    dt = dt_from_day(name)
     if not dt:
         print('Invalid date. Must either be a day of the week or of the form YYYY-MM-DD.')
         return 1
