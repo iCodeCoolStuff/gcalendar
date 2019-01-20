@@ -508,6 +508,7 @@ def cli(ctx):
         ctx.obj['week'] = get_days_of_week(datetime.datetime.today()) 
     else:
         print('You haven\'t been authorized yet. Check github for more info.')
+        return 0
 
 @cli.command()
 @click.argument('day', type=str)
