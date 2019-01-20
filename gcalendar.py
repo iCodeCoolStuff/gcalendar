@@ -625,11 +625,11 @@ def delete(ctx, name, isfile):
         if not name.endswith('.json'):
             name += '.json'
         if not os.path.exists(FILE_DIRECTORY + '\\schedules\\' + name):
-            print(f'{filename} does not exist.')
+            print(f'{name} does not exist.')
             return 4
         else:
             os.remove(FILE_DIRECTORY + '\\schedules\\' + name)
-            print(f'{filename} removed.')
+            print(f'{name} removed.')
             return 0
 
     dt = dt_from_day(name)
