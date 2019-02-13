@@ -9,9 +9,7 @@ from googleapiclient.discovery import build
 from httplib2 import Http
 from oauth2client import file, client, tools
 
-from gcalendar import gcalendar
-
-SCOPES = 'https://www.googleapis.com/auth/calendar'
+import gcalendar
 
 class TestTimeFunctions(unittest.TestCase):
 
@@ -63,13 +61,21 @@ class TestTimeFunctions(unittest.TestCase):
         week = gcalendar.get_current_week()
         self.assertEqual(week, gcalendar.get_days_of_week(today))
 
+    def test_get_dayrange(self):
+        dt1 = gcalendar.dt_from_day('sunday')
+        dt2 = gcalendar.dt_from_day('saturday')
+
+        day_range = gcalendar.get_dayrange(dt1, dt2)
+
+        self.assertEqual(day_range, gcalendar.get_current_week())
+
 class TestEventFunctions(unittest.TestCase):
 
     def setUp(self):
-        store = file.Storage('./gcalendar/token.json')
+        store = file.Storage('token.json')
         creds = store.get()
         if not creds or creds.invalid:
-            flow = client.flow_from_clientsecrets('./gcalendar/credentials.json', SCOPES)
+            flow = client.flow_from_clientsecrets('credentials.json', SCOPES)
             creds = tools.run_flow(flow, store)
         self.service = build('calendar', 'v3', http=creds.authorize(Http()))
 
@@ -92,6 +98,10 @@ class TestEventFunctions(unittest.TestCase):
         #Doesn't need testing
         pass
 
+    def test_clone_events(self):
+        #doesn't need testing
+        pass
+
     def test_save_events(self):
         events = gcalendar.get_events(self.service, datetime.datetime.today())
         newevents = []
@@ -100,7 +110,7 @@ class TestEventFunctions(unittest.TestCase):
             newevents.append(newevent)
         
         gcalendar.save_events(newevents, 'test_events.json')
-        levents = gcalendar.load_events('test_events.json')
+        levents = gcalenadr.load_events('test_events.json')
         self.assertEqual(newevents, levents)
 
     def test_load_events(self):
@@ -109,20 +119,13 @@ class TestEventFunctions(unittest.TestCase):
         events = gcalendar.load_events('test_events.json')
 
     def test_print_events(self):
-        pass
-        #events = gcalendar.get_events(self.service, datetime.datetime.today())
-        #gcalendar.print_events(events)
+        events = gcalendar.get_events(self.service, datetime.datetime.today())
+        gcalendar.print_events(events)
 
     def test_delete_events(self):
-        #upload
         events = gcalendar.get_events(self.service, datetime.datetime.today())
-        new_events = []
-        for event in events:
-            new_events.append(gcalendar.clone_event(event))
-        gcalendar.upload_events(self.service, new_events, datetime.datetime(2019, 3, 3))
-        #delete 
-        events2 = gcalendar.get_events(self.service, datetime.datetime(2019, 3, 3,))
-        gcalendar.delete_events(self.service, events2)
+        gcalendar.upload_events(self.service, events, datetime.datetime(2019, 3, 3))
+        gcalendar.delete_events(self.service, events)
     
 
 class TestRegexFunctions(unittest.TestCase):
@@ -155,20 +158,19 @@ class TestRegexFunctions(unittest.TestCase):
         self.assertEqual(gcalendar.dt_from_date('2019-3-8'), dt)
 
     def test_is_reldate(self):
-        stuff = ['last monday',
-        'last tuesday',
-        'last wednesday',
-        'last thursday',
-        'last friday',
-        'last saturday',
-        'last sunday']
+        stuff = ['next monday',
+        'next tuesday',
+        'next wednesday',
+        'next thursday',
+        'next friday',
+        'next saturday',
+        'next sunday']
 
         for s in stuff:
             self.assertEqual(True, gcalendar.is_reldate(s))
 
     def test_dt_from_reldate(self):
-        next_saturday = gcalendar.dt_from_date('2019-1-26')
-        self.assertEqual(next_saturday, gcalendar.dt_from_reldate('next saturday'))
+        pass
 
 if __name__ == '__main__':
     unittest.main()

@@ -31,6 +31,7 @@ The latest version of [Python](https://www.python.org/downloads/)
 Supported Commands:
 ```
   authorize       Authorizes credentials for Google Api
+  copy            Copies a schedule from a day to another day
   delete          Delete events from a specific day
   list            List events from a file or day
   list_schedules  Lists all of the schedules that are currently saved
