@@ -7,6 +7,7 @@ import pprint
 import time
 import re
 import sys
+import webbrowser
 
 from copy import deepcopy
 
@@ -231,7 +232,7 @@ def get_current_week():
     '''
     return get_days_of_week(datetime.datetime.today())
 
-def get_dayrange(dt1, dt2):
+def get_day_range(dt1, dt2):
     '''Returns a list of datetime.datetime objects from dt1 to dt2 (inclusive)
     
     Parameters:
@@ -395,6 +396,7 @@ def upload_events(service, events, dt):
         dt (datetime.datetime): the date to upload the events to
     '''
     cal = service.events()
+    events = clone_events(events)
     for event in events:
         start, end = get_start_and_end(event)
         diff = dt - start
@@ -404,8 +406,6 @@ def upload_events(service, events, dt):
             td = abs(datetime.timedelta(days=diff.days, seconds=time.timezone))
         else:
             td = abs(datetime.timedelta(days=diff.days+1, seconds=time.timezone))
-
-        #print(f'td: {td}')
 
         if dt_to_POSIX(end) > dt_to_POSIX(dt):
             newstart = start - td
@@ -549,7 +549,6 @@ def cli(ctx):
 
         ctx.obj = {}
         ctx.obj['service'] = service
-        ctx.obj['week'] = get_days_of_week(datetime.datetime.today()) 
     else:
         print('You haven\'t been authorized yet. Check github for more info.')
         return 0
@@ -692,9 +691,9 @@ def delete(ctx, name, isfile):
 @click.argument('day', type=str)
 @click.argument('newday', type=str)
 @click.option('-u', 'until', is_flag=True, help='specifies to copy over days until newday')
-@click.option('-f', 'force', is_flag=True, help='overwrites any events and doesn\'t ask for permission before doing so')
+@click.option('-c', 'confirm', is_flag=True, help='asks to confirm before overwriting any events')
 @click.pass_context
-def copy(ctx, day, newday, until, force):
+def copy(ctx, day, newday, until, confirm):
     '''Copies a schedule from a day to another day'''
     dt = dt_from_day(day)
     if not dt:
@@ -708,35 +707,39 @@ def copy(ctx, day, newday, until, force):
 
     raw_events = get_events(ctx.obj['service'], dt)
     if not raw_events:
-        print('No events found.')
+        print('No events found for {day}. Copy canceled.')
         return 3
 
     events = clone_events(raw_events)
 
+    day_range = []
     if until:
         if not dt < new_dt:
             print('Invalid date range. Please make sure your range is in order.')
             return 2
 
-        day_range = get_dayrange(dt, new_dt)
-        del day_range[0] #don't need first element
-        for day in day_range:
-            current_events = get_events(ctx.obj['service'], day)
-            if not force:
-                if current_events:
-                    confirmed = ask_for_confirmation(f'There are already events registered for {date_from_dt(day)}, would you like to overwrite?')
-                    if confirmed:
-                        delete_events(ctx.obj['service'], current_events)
-                    else:
-                        continue
-            copied_events = clone_events(events)
-            if current_events:
-                delete_events(ctx.obj['service'], current_events)
-            upload_events(ctx.obj['service'], copied_events, day)
-    else:
-        upload_events(ctx.obj['service'], events, new_dt)
+        for t in get_day_range(dt, new_dt):
+            day_range.append(t)
 
-    print(f'Copied events. from {date_from_dt(dt)} to {date_from_dt(new_dt)}')
+        del day_range[0] #don't need first element
+    else:
+        day_range.append(new_dt)
+
+    for d in day_range:
+        current_events = get_events(ctx.obj['service'], d)
+
+        if current_events:
+            if confirm:
+                confirmed = ask_for_confirmation(f'There are already events registered for {date_from_dt(d)}, would you like to overwrite them?')
+                if confirmed:
+                    pass
+                else:
+                    continue
+            delete_events(current_events)
+
+        upload_events(ctx.obj['service'], events, d)
+
+    print(f'Copied events. from {date_from_dt(day)} to {date_from_dt(newday)}')
     return 0
 
 @cli.command()
@@ -754,6 +757,11 @@ def list_schedules():
         return 1
     print('No schedules found.')
     return 1
+
+@cli.command()
+def open():
+    '''Opens Google Calendar in a web browser'''
+    webbrowser.open('https://calendar.google.com/calendar', new=0, autoraise=True)
 
 @cli.command()
 @click.option('-ci', '--client_id', default=None, help='Your client ID')
