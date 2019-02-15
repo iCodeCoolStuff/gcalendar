@@ -706,36 +706,36 @@ def copy(ctx, day, newday, until, confirm):
 
     raw_events = get_events(ctx.obj['service'], dt)
     if not raw_events:
-        print('No events found.')
+        print('No events found for {day}. Copy canceled.')
         return 3
 
     events = clone_events(raw_events)
 
+    day_range = []
     if until:
         if not dt < new_dt:
             print('Invalid date range. Please make sure your range is in order.')
             return 2
 
-        day_range = get_day_range(dt, new_dt)
-        del day_range[0] #don't need first element
-
-        for day in day_range:
-            current_events = get_events(ctx.obj['service'], day)
-
-            if confirm:
-                if current_events:
-                    confirmed = ask_for_confirmation(f'There are already events registered for {day}, would you like to overwrite them?')
-                    if confirmed:
-                        delete_events(current_events)
-                    else:
-                        continue
-
-            upload_events(ctx.obj['service'], events, day)
+        for t in get_day_range(dt, new_dt):
+            day_range.append(t)
+            del day_range[0] #don't need first element
     else:
+        day_range.append(new_dt)
+
+    for day in day_range:
         current_events = get_events(ctx.obj['service'], day)
+
         if current_events:
+            if confirm:
+                confirmed = ask_for_confirmation(f'There are already events registered for {day}, would you like to overwrite them?')
+                if confirmed:
+                    pass
+                else:
+                    continue
             delete_events(current_events)
-        upload_events(ctx.obj['service'], events, new_dt)
+
+        upload_events(ctx.obj['service'], events, day)
 
     print(f'Copied events. from {date_from_dt(dt)} to {date_from_dt(new_dt)}')
     return 0
