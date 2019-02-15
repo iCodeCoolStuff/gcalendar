@@ -61,13 +61,11 @@ class TestTimeFunctions(unittest.TestCase):
         week = gcalendar.get_current_week()
         self.assertEqual(week, gcalendar.get_days_of_week(today))
 
-    def test_get_dayrange(self):
+    def test_get_day_range(self):
         dt1 = gcalendar.dt_from_day('sunday')
         dt2 = gcalendar.dt_from_day('saturday')
 
-        day_range = gcalendar.get_dayrange(dt1, dt2)
-
-        self.assertEqual(day_range, gcalendar.get_current_week())
+        self.assertEqual(gcalendar.get_day_range(dt1, dt2), gcalendar.get_current_week())
 
 class TestEventFunctions(unittest.TestCase):
 
@@ -110,7 +108,7 @@ class TestEventFunctions(unittest.TestCase):
             newevents.append(newevent)
         
         gcalendar.save_events(newevents, 'test_events.json')
-        levents = gcalenadr.load_events('test_events.json')
+        levents = gcalendar.load_events('test_events.json')
         self.assertEqual(newevents, levents)
 
     def test_load_events(self):
