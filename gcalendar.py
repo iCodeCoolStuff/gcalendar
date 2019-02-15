@@ -376,23 +376,18 @@ def save_events(events, filename):
 def upload_events(service, events, dt):
     '''Uploads events to a given day on Google Calendar
 
-    This function takes the difference between the start and end of an event
-    and the day the event is uploaded to. It then takes that difference and 
-    adds or subtracts it based on whether or not the given day is "ahead"
-    or "behind" the day of the saved events. This avoids a bug where the
-    bounds of the event were invalid because the event ended beyond the
-    day it was started (via setting the date of event bounds to that of a
-    target date). Finally, the event is inserted into Google Calendar.
+    This function takes the difference between an event's starting time and
+    date, and subtracts it from the target date. It then adds or subtracts
+    the difference, gives the event object the new time, and then inserts
+    it into Google Calendar.
 
-    The "events" parameter needs to be a list of cloned event objects
-    because Google Calendar will respond with a 409 saying that "The
-    Requested Identifier Already Exists" because of event identification
-    properties.
+    Each Google Calendar event object is cloned before it is sent off so
+    there are no conflicts with already existing events.
 
     Parameters:
         service (googleapiclient.discovery.Resource): A Resource object that
             uses the Google Calendar v3 API
-        events (list): a list of cloned event objects
+        events (list): a list of Google Calendar event objects
         dt (datetime.datetime): the date to upload the events to
     '''
     cal = service.events()
