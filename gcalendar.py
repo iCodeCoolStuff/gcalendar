@@ -706,7 +706,7 @@ def copy(ctx, day, newday, until, confirm):
 
     raw_events = get_events(ctx.obj['service'], dt)
     if not raw_events:
-        print('No events found for {day}. Copy canceled.')
+        print(f'No events found for {day}. Copy canceled.')
         return 3
 
     events = clone_events(raw_events)
