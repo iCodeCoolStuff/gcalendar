@@ -609,7 +609,7 @@ def upload(ctx, filename, day, until, confirm):
 
     day_range = []
     if until:
-        dt = dt_from_day(day)
+        new_dt = dt_from_day(until)
         if not dt:
             print('Invalid date. Must either be a day of the week or of the form YYYY-MM-DD.')
             return 1
@@ -618,7 +618,7 @@ def upload(ctx, filename, day, until, confirm):
             print('Invalid date range. Please make sure your range is in order.')
             return 2
 
-        for e in get_day_range(dt, dt2):
+        for e in get_day_range(dt, new_dt):
             day_range.append(e)
     else:
         day_range.append(dt)
@@ -633,7 +633,7 @@ def upload(ctx, filename, day, until, confirm):
                     pass
                 else:
                     continue
-            delete_events(current_events)
+            delete_events(ctx.obj['service'], current_events)
 
         upload_events(ctx.obj['service'], events, d)
 
@@ -776,6 +776,7 @@ def list_schedules():
         return 1
     print('No schedules found.')
     return 1
+
 
 @cli.command()
 def open():
