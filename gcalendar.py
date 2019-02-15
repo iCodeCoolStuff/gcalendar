@@ -587,8 +587,10 @@ def save(ctx, day, filename):
 @cli.command()
 @click.argument('filename', type=str)
 @click.argument('day', type=str) 
+@click.option('-u', 'until', type=str, help='if this is specified, then events from filename will be uploaded from day to the day specified by this option')
+@click.option('-c', 'confirm', is_flag=True, help='asks to confirm before overwriting any events')
 @click.pass_context
-def upload(ctx, filename, day):
+def upload(ctx, filename, day, until, confirm):
     '''Upload events from a file to a specific date'''
     dt = dt_from_day(day)
     if not dt:
@@ -605,18 +607,40 @@ def upload(ctx, filename, day):
         print(f'No events found in {filename}.')
         return 3
 
-    cal_events = get_events(ctx.obj['service'], dt)
-    if cal_events:
-        confirmed = ask_for_confirmation('There are already events registered for that day. Would you like to overwrite them?')
-        if confirmed:
-            delete_events(ctx.obj['service'], cal_events)
-            print(f'Events overwritten for {day}.')
-        else:
-            print('Upload canceled.')            
+    day_range = []
+    if until:
+        dt = dt_from_day(day)
+        if not dt:
+            print('Invalid date. Must either be a day of the week or of the form YYYY-MM-DD.')
+            return 1
+
+        if not dt < new_dt:
+            print('Invalid date range. Please make sure your range is in order.')
             return 2
 
-    events = upload_events(ctx.obj['service'], events, dt) 
-    print('Uploaded schedule.')
+        for e in get_day_range(dt, dt2):
+            day_range.append(e)
+    else:
+        day_range.append(dt)
+    
+    for d in day_range:
+        current_events = get_events(ctx.obj['service'], d)
+
+        if current_events:
+            if confirm:
+                confirmed = ask_for_confirmation(f'There are already events registered for {date_from_dt(d)}, would you like to overwrite them?')
+                if confirmed:
+                    pass
+                else:
+                    continue
+            delete_events(current_events)
+
+        upload_events(ctx.obj['service'], events, d)
+
+    if until:
+        print(f'Uploaded events from {filename} to {day}.')
+    else:
+        print('Uploaded events from {filename} from {day} to {until}')
     return 0
 
 @cli.command()
