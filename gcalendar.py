@@ -7,6 +7,7 @@ import pprint
 import time
 import re
 import sys
+import webbrowser
 
 from copy import deepcopy
 
@@ -756,6 +757,11 @@ def list_schedules():
         return 1
     print('No schedules found.')
     return 1
+
+@cli.command()
+def open():
+    '''Opens Google Calendar in a web browser'''
+    webbrowser.open('https://calendar.google.com/calendar', new=0, autoraise=True)
 
 @cli.command()
 @click.option('-ci', '--client_id', default=None, help='Your client ID')
