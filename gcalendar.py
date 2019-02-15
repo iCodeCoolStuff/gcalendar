@@ -719,25 +719,26 @@ def copy(ctx, day, newday, until, confirm):
 
         for t in get_day_range(dt, new_dt):
             day_range.append(t)
-            del day_range[0] #don't need first element
+
+        del day_range[0] #don't need first element
     else:
         day_range.append(new_dt)
 
-    for day in day_range:
-        current_events = get_events(ctx.obj['service'], day)
+    for d in day_range:
+        current_events = get_events(ctx.obj['service'], d)
 
         if current_events:
             if confirm:
-                confirmed = ask_for_confirmation(f'There are already events registered for {day}, would you like to overwrite them?')
+                confirmed = ask_for_confirmation(f'There are already events registered for {date_from_dt(d)}, would you like to overwrite them?')
                 if confirmed:
                     pass
                 else:
                     continue
             delete_events(current_events)
 
-        upload_events(ctx.obj['service'], events, day)
+        upload_events(ctx.obj['service'], events, d)
 
-    print(f'Copied events. from {date_from_dt(dt)} to {date_from_dt(new_dt)}')
+    print(f'Copied events. from {date_from_dt(day)} to {date_from_dt(newday)}')
     return 0
 
 @cli.command()
