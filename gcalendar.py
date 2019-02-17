@@ -777,7 +777,6 @@ def list_schedules():
     print('No schedules found.')
     return 1
 
-
 @cli.command()
 def open():
     '''Opens Google Calendar in a web browser'''
