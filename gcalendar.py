@@ -373,7 +373,7 @@ def save_events(events, filename):
     with open(filename, 'w') as f:
         json.dump(events, f)
 
-def upload_events(service, events, dt):
+def upload_events(service, events, dt, clone=True):
     '''Uploads events to a given day on Google Calendar
 
     This function takes the difference between an event's starting time and
@@ -389,6 +389,9 @@ def upload_events(service, events, dt):
             uses the Google Calendar v3 API
         events (list): a list of Google Calendar event objects
         dt (datetime.datetime): the date to upload the events to
+    Keyword Arguments:
+        clone (bool): Specifies whether or not to clone events objects
+            (True by default)
     '''
     cal = service.events()
     events = clone_events(events)
