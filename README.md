@@ -35,6 +35,7 @@ Supported Commands:
   delete          Delete events from a specific day
   list            List events from a file or day
   list_schedules  Lists all of the schedules that are currently saved
+  spawn           Spawns an instance of Google Calendar in a web browser
   save            Save a schedule of events to a file
   upload          Upload events from a file to a specific date
 ```
