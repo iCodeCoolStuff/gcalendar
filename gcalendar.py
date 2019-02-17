@@ -640,7 +640,7 @@ def upload(ctx, filename, day, until, confirm):
     if until:
         print(f'Uploaded events from {filename} to {day}.')
     else:
-        print('Uploaded events from {filename} from {day} to {until}')
+        print(f'Uploaded events from {filename} from {day} to {until}')
     return 0
 
 @cli.command()
