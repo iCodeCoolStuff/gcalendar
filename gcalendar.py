@@ -712,6 +712,39 @@ def delete(ctx, name, isfile):
 @cli.command()
 @click.argument('day', type=str)
 @click.argument('newday', type=str)
+@click.pass_context
+def move(ctx, day, newday):
+    '''Moves events from one day to another'''
+    dt = dt_from_day(day)
+    if not dt:
+        print('Invalid date. Must either be a day of the week or of the form YYYY-MM-DD.')
+        return 1
+
+    new_dt = dt_from_day(newday)
+    if not new_dt:
+        print('Invalid date. Must either be a day of the week or of the form YYYY-MM-DD.')
+        return 1
+
+    current_events = get_events(ctx.obj['service'], new_dt)
+    if current_events:
+        confirmed = ask_for_confirmation(f'There are already events registered for {newday}, would you like to overwrite them?')
+        if confirmed:
+            delete_events(ctx.obj['service'], current_events)
+        else:
+            print('Move canceled.')
+            return 0
+
+    old_events = get_events(ctx.obj['service'], dt)
+    new_events = clone_events(old_events)
+    upload_events(ctx.obj['service'], new_events, new_dt)
+    delete_events(ctx.obj['service'], old_events)
+
+    print(f'Moved events from {day} to {newday}.')
+    return 0
+
+@cli.command()
+@click.argument('day', type=str)
+@click.argument('newday', type=str)
 @click.option('-u', 'until', is_flag=True, help='specifies to copy over days until newday')
 @click.option('-c', 'confirm', is_flag=True, help='asks to confirm before overwriting any events')
 @click.pass_context
