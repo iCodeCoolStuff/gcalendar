@@ -759,8 +759,8 @@ def list_schedules():
     return 1
 
 @cli.command()
-def open():
-    '''Opens Google Calendar in a web browser'''
+def spawn():
+    '''Spawns an Instance of Google Calendar in a web browser'''
     webbrowser.open('https://calendar.google.com/calendar', new=0, autoraise=True)
 
 @cli.command()
