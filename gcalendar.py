@@ -376,23 +376,18 @@ def save_events(events, filename):
 def upload_events(service, events, dt):
     '''Uploads events to a given day on Google Calendar
 
-    This function takes the difference between the start and end of an event
-    and the day the event is uploaded to. It then takes that difference and 
-    adds or subtracts it based on whether or not the given day is "ahead"
-    or "behind" the day of the saved events. This avoids a bug where the
-    bounds of the event were invalid because the event ended beyond the
-    day it was started (via setting the date of event bounds to that of a
-    target date). Finally, the event is inserted into Google Calendar.
+    This function takes the difference between an event's starting time and
+    date, and subtracts it from the target date. It then adds or subtracts
+    the difference, gives the event object the new time, and then inserts
+    it into Google Calendar.
 
-    The "events" parameter needs to be a list of cloned event objects
-    because Google Calendar will respond with a 409 saying that "The
-    Requested Identifier Already Exists" because of event identification
-    properties.
+    Each Google Calendar event object is cloned before it is sent off so
+    there are no conflicts with already existing events.
 
     Parameters:
         service (googleapiclient.discovery.Resource): A Resource object that
             uses the Google Calendar v3 API
-        events (list): a list of cloned event objects
+        events (list): a list of Google Calendar event objects
         dt (datetime.datetime): the date to upload the events to
     '''
     cal = service.events()
@@ -592,8 +587,10 @@ def save(ctx, day, filename):
 @cli.command()
 @click.argument('filename', type=str)
 @click.argument('day', type=str) 
+@click.option('-u', 'until', type=str, help='if this is specified, then events from filename will be uploaded from day to the day specified by this option')
+@click.option('-c', 'confirm', is_flag=True, help='asks to confirm before overwriting any events')
 @click.pass_context
-def upload(ctx, filename, day):
+def upload(ctx, filename, day, until, confirm):
     '''Upload events from a file to a specific date'''
     dt = dt_from_day(day)
     if not dt:
@@ -610,18 +607,40 @@ def upload(ctx, filename, day):
         print(f'No events found in {filename}.')
         return 3
 
-    cal_events = get_events(ctx.obj['service'], dt)
-    if cal_events:
-        confirmed = ask_for_confirmation('There are already events registered for that day. Would you like to overwrite them?')
-        if confirmed:
-            delete_events(ctx.obj['service'], cal_events)
-            print(f'Events overwritten for {day}.')
-        else:
-            print('Upload canceled.')            
+    day_range = []
+    if until:
+        new_dt = dt_from_day(until)
+        if not dt:
+            print('Invalid date. Must either be a day of the week or of the form YYYY-MM-DD.')
+            return 1
+
+        if not dt < new_dt:
+            print('Invalid date range. Please make sure your range is in order.')
             return 2
 
-    events = upload_events(ctx.obj['service'], events, dt) 
-    print('Uploaded schedule.')
+        for e in get_day_range(dt, new_dt):
+            day_range.append(e)
+    else:
+        day_range.append(dt)
+    
+    for d in day_range:
+        current_events = get_events(ctx.obj['service'], d)
+
+        if current_events:
+            if confirm:
+                confirmed = ask_for_confirmation(f'There are already events registered for {date_from_dt(d)}, would you like to overwrite them?')
+                if confirmed:
+                    pass
+                else:
+                    continue
+            delete_events(ctx.obj['service'], current_events)
+
+        upload_events(ctx.obj['service'], events, d)
+
+    if until:
+        print(f'Uploaded events from {filename} to {day}.')
+    else:
+        print(f'Uploaded events from {filename} from {day} to {until}')
     return 0
 
 @cli.command()
