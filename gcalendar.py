@@ -748,7 +748,7 @@ def copy(ctx, day, newday, until, confirm):
 
     raw_events = get_events(ctx.obj['service'], dt)
     if not raw_events:
-        print('No events found for {day}. Copy canceled.')
+        print(f'No events found for {day}. Copy canceled.')
         return 3
 
     events = clone_events(raw_events)
@@ -776,11 +776,11 @@ def copy(ctx, day, newday, until, confirm):
                     pass
                 else:
                     continue
-            delete_events(current_events)
+            delete_events(ctx.obj['service'], current_events)
 
         upload_events(ctx.obj['service'], events, d)
 
-    print(f'Copied events. from {date_from_dt(day)} to {date_from_dt(newday)}')
+    print(f'Copied events from {day} to {newday}')
     return 0
 
 @cli.command()
