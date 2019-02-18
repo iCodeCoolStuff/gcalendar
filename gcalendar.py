@@ -440,8 +440,6 @@ def print_events(events):
     Parameters:
         events (list): a list of Google Calendar event objects (or clones)
     '''
-    start = None
-    summary = None
     for event in events:
         try:
             start = event['start']['dateTime']
@@ -451,7 +449,14 @@ def print_events(events):
             summary = event['summary']
         except KeyError:
             summary = '(No title)'
-        print(start, summary)
+
+        start_dt = utctimestamp_to_dt(start)
+        if start_dt.hour > 12:
+            print(f'{start_dt.hour-12}:{start_dt.minute:02d}pm', summary)
+        elif start_dt.hour == 0:
+            print(f'12:{start_dt.minute:02d}am', summary)
+        else:
+            print(f'{start_dt.hour}:{start_dt.minute:02d}am', summary)
 
 def delete_events(service, events):
     '''Deletes a list of events from Google Calendar
@@ -678,33 +683,64 @@ def list(ctx, name, filename):
     return 0
 
 @cli.command()
-@click.argument('name', type=str)
-@click.option('-f', 'isfile', is_flag=True, help='specifies that day is a filename')
+@click.argument('day', type=str)
+@click.option('-u', 'until', help='If this is specified, then all events from day until the day specified here will be deleted')
+@click.option('-c', 'confirm', is_flag=True, help='asks to confirm before overwriting any events')
+@click.option('-f','filename', is_flag=True, help='if this is specified, then the schedule specified will be deleted')
 @click.pass_context
-def delete(ctx, name, isfile):
+def delete(ctx, day, until, confirm, filename):
     '''Delete events from a specific day'''
-    if isfile:
-        if not name.endswith('.json'):
-            name += '.json'
-        if not os.path.exists(FILE_DIRECTORY + '\\schedules\\' + name):
-            print(f'{name} does not exist.')
-            return 4
-        else:
-            os.remove(FILE_DIRECTORY + '\\schedules\\' + name)
-            print(f'{name} removed.')
-            return 0
 
-    dt = dt_from_day(name)
+    if filename:
+        if not day.endswith('.json'):
+            day += '.json'
+        exists = pathlib.Path(FILE_DIRECTORY + '\\schedules\\' + day).is_file()
+        if exists:
+            os.remove(FILE_DIRECTORY + '\\schedules\\' + day)
+            print(f'Deleted {day}.')
+            return 0
+        else:
+            print(f'{day} does not exist.')
+            return 1
+
+    dt = dt_from_day(day)
     if not dt:
         print('Invalid date. Must either be a day of the week or of the form YYYY-MM-DD.')
         return 1
-    events = get_events(ctx.obj['service'], dt)
-    if not events:
-        print('No events found. Deletion canceled.')
-        return 3
 
-    delete_events(ctx.obj['service'], events)
-    print(f'Deleted events for {name}.')
+    day_range = []
+    if until:
+        new_dt = dt_from_day(until)
+        if not new_dt:
+            print('Invalid date. Must either be a day of the week or of the form YYYY-MM-DD.')
+            return 1
+
+        if not dt < new_dt:
+            print('Invalid date range. Please make sure your range is in order.')
+            return 2
+
+        for d in get_day_range(dt, new_dt):
+            day_range.append(d)
+    else:
+        day_range.append(dt)
+
+    for d in day_range:
+        current_events = get_events(ctx.obj['service'], d)
+
+        if current_events:
+            if confirm:
+                confirmed = ask_for_confirmation(f'There are already events registered for {date_from_dt(d)}, would you like to overwrite them?')
+                if confirmed:
+                    pass
+                else:
+                    continue
+            delete_events(ctx.obj['service'], current_events)
+
+    if until:
+        print(f'Deleted events from {day} to {until}')
+    else:
+        print(f'Deleted events from {day}.')
+    return 0
 
 @cli.command()
 @click.argument('day', type=str)
@@ -759,7 +795,7 @@ def copy(ctx, day, newday, until, confirm):
 
     raw_events = get_events(ctx.obj['service'], dt)
     if not raw_events:
-        print('No events found for {day}. Copy canceled.')
+        print(f'No events found for {day}. Copy canceled.')
         return 3
 
     events = clone_events(raw_events)
@@ -787,11 +823,11 @@ def copy(ctx, day, newday, until, confirm):
                     pass
                 else:
                     continue
-            delete_events(current_events)
+            delete_events(ctx.obj['service'], current_events)
 
         upload_events(ctx.obj['service'], events, d)
 
-    print(f'Copied events. from {date_from_dt(day)} to {date_from_dt(newday)}')
+    print(f'Copied events from {day} to {newday}')
     return 0
 
 @cli.command()
