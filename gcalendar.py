@@ -684,32 +684,48 @@ def list(ctx, name, filename):
 
 @cli.command()
 @click.argument('name', type=str)
-@click.option('-f', 'isfile', is_flag=True, help='specifies that day is a filename')
+@click.option('-u', 'until', help='If this is specified, then all events from day until the day specified here will be deleted')
+@click.option('-c', 'confirm', is_flag=True, help='asks to confirm before overwriting any events')
 @click.pass_context
-def delete(ctx, name, isfile):
+def delete(ctx, day):
     '''Delete events from a specific day'''
-    if isfile:
-        if not name.endswith('.json'):
-            name += '.json'
-        if not os.path.exists(FILE_DIRECTORY + '\\schedules\\' + name):
-            print(f'{name} does not exist.')
-            return 4
-        else:
-            os.remove(FILE_DIRECTORY + '\\schedules\\' + name)
-            print(f'{name} removed.')
-            return 0
-
-    dt = dt_from_day(name)
+    dt = dt_from_day(day)
     if not dt:
         print('Invalid date. Must either be a day of the week or of the form YYYY-MM-DD.')
         return 1
-    events = get_events(ctx.obj['service'], dt)
-    if not events:
-        print('No events found. Deletion canceled.')
-        return 3
 
-    delete_events(ctx.obj['service'], events)
-    print(f'Deleted events for {name}.')
+    day_range = []
+    if until:
+        new_dt = dt_from_day(until)
+        if not new_dt:
+            print('Invalid date. Must either be a day of the week or of the form YYYY-MM-DD.')
+            return 1
+
+        if not dt < new_dt:
+            print('Invalid date range. Please make sure your range is in order.')
+            return 2
+
+        for d in get_day_range(dt, new_dt):
+            day_range.append(d)
+    else:
+        day_range.append(dt)
+
+    for d in day_range:
+        current_events = get_events(ctx.obj['service'], d)
+
+        if current_events:
+            if confirm:
+                confirmed = ask_for_confirmation(f'There are already events registered for {date_from_dt(d)}, would you like to overwrite them?')
+                if confirmed:
+                    delete_events(ctx.obj['service'], current_events)
+                else:
+                    continue
+
+    if until:
+        print(f'Deleted events from {day} to {until}')
+    else:
+        print(f'Deleted events from {day}.')
+    return 0
 
 @cli.command()
 @click.argument('day', type=str)
