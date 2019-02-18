@@ -686,20 +686,21 @@ def list(ctx, name, filename):
 @click.argument('day', type=str)
 @click.option('-u', 'until', help='If this is specified, then all events from day until the day specified here will be deleted')
 @click.option('-c', 'confirm', is_flag=True, help='asks to confirm before overwriting any events')
-@click.option('-f' 'filename', help='if this is specified, then the schedule specified will be deleted')
+@click.option('-f','filename', is_flag=True, help='if this is specified, then the schedule specified will be deleted')
 @click.pass_context
 def delete(ctx, day, until, confirm, filename):
     '''Delete events from a specific day'''
 
     if filename:
-        if not filename.endswith('.json'):
-            filename += '.json'
-        exists = pathlib.Path(FILE_DIRECTORY + '\\schedules\\' + filename).is_file()
+        if not day.endswith('.json'):
+            day += '.json'
+        exists = pathlib.Path(FILE_DIRECTORY + '\\schedules\\' + day).is_file()
         if exists:
-            os.remove(FILE_DIRECTORY + '\\schedules\\' + filename)
+            os.remove(FILE_DIRECTORY + '\\schedules\\' + day)
+            print(f'Deleted {day}.')
             return 0
         else:
-            print(f'{filename} does not exist.')
+            print(f'{day} does not exist.')
             return 1
 
     dt = dt_from_day(day)
