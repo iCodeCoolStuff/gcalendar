@@ -683,11 +683,11 @@ def list(ctx, name, filename):
     return 0
 
 @cli.command()
-@click.argument('name', type=str)
+@click.argument('day', type=str)
 @click.option('-u', 'until', help='If this is specified, then all events from day until the day specified here will be deleted')
 @click.option('-c', 'confirm', is_flag=True, help='asks to confirm before overwriting any events')
 @click.pass_context
-def delete(ctx, day):
+def delete(ctx, day, until, confirm):
     '''Delete events from a specific day'''
     dt = dt_from_day(day)
     if not dt:
@@ -717,9 +717,10 @@ def delete(ctx, day):
             if confirm:
                 confirmed = ask_for_confirmation(f'There are already events registered for {date_from_dt(d)}, would you like to overwrite them?')
                 if confirmed:
-                    delete_events(ctx.obj['service'], current_events)
+                    pass
                 else:
                     continue
+            delete_events(ctx.obj['service'], current_events)
 
     if until:
         print(f'Deleted events from {day} to {until}')
