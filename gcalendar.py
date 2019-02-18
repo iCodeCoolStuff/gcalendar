@@ -373,7 +373,7 @@ def save_events(events, filename):
     with open(filename, 'w') as f:
         json.dump(events, f)
 
-def upload_events(service, events, dt):
+def upload_events(service, events, dt, clone=True):
     '''Uploads events to a given day on Google Calendar
 
     This function takes the difference between an event's starting time and
@@ -389,6 +389,9 @@ def upload_events(service, events, dt):
             uses the Google Calendar v3 API
         events (list): a list of Google Calendar event objects
         dt (datetime.datetime): the date to upload the events to
+    Keyword Arguments:
+        clone (bool): Specifies whether or not to clone events objects
+            (True by default)
     '''
     cal = service.events()
     events = clone_events(events)
@@ -726,6 +729,39 @@ def delete(ctx, day, until, confirm):
         print(f'Deleted events from {day} to {until}')
     else:
         print(f'Deleted events from {day}.')
+    return 0
+
+@cli.command()
+@click.argument('day', type=str)
+@click.argument('newday', type=str)
+@click.pass_context
+def move(ctx, day, newday):
+    '''Moves events from one day to another'''
+    dt = dt_from_day(day)
+    if not dt:
+        print('Invalid date. Must either be a day of the week or of the form YYYY-MM-DD.')
+        return 1
+
+    new_dt = dt_from_day(newday)
+    if not new_dt:
+        print('Invalid date. Must either be a day of the week or of the form YYYY-MM-DD.')
+        return 1
+
+    current_events = get_events(ctx.obj['service'], new_dt)
+    if current_events:
+        confirmed = ask_for_confirmation(f'There are already events registered for {newday}, would you like to overwrite them?')
+        if confirmed:
+            delete_events(ctx.obj['service'], current_events)
+        else:
+            print('Move canceled.')
+            return 0
+
+    old_events = get_events(ctx.obj['service'], dt)
+    new_events = clone_events(old_events)
+    upload_events(ctx.obj['service'], new_events, new_dt)
+    delete_events(ctx.obj['service'], old_events)
+
+    print(f'Moved events from {day} to {newday}.')
     return 0
 
 @cli.command()
