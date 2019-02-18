@@ -440,8 +440,6 @@ def print_events(events):
     Parameters:
         events (list): a list of Google Calendar event objects (or clones)
     '''
-    start = None
-    summary = None
     for event in events:
         try:
             start = event['start']['dateTime']
@@ -451,7 +449,14 @@ def print_events(events):
             summary = event['summary']
         except KeyError:
             summary = '(No title)'
-        print(start, summary)
+
+        start_dt = utctimestamp_to_dt(start)
+        if start_dt.hour > 12:
+            print(f'{start_dt.hour-12}:{start_dt.minute:02d}pm', summary)
+        elif start_dt.hour == 0:
+            print(f'12:{start_dt.minute:02d}am', summary)
+        else:
+            print(f'{start_dt.hour}:{start_dt.minute:02d}am', summary)
 
 def delete_events(service, events):
     '''Deletes a list of events from Google Calendar
