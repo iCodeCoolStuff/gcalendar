@@ -211,7 +211,7 @@ def get_days_of_week(dt):
     if date == 6:
         days = []
         for i in range(7):
-            days.append(datetime.datetime(dt.year, dt.month, dt.day+i))
+            days.append(datetime.datetime(dt.year, dt.month, dt.day) + datetime.timedelta(days=i))
         return days
 
     offset = 0
