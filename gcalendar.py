@@ -397,10 +397,10 @@ def upload_events(service, events, dt):
         diff = dt - start
 
         #Account for difference if start starts at midnight
-        if start.hour == 0 and start.minute == 0 and start.second == 0:
-            td = abs(datetime.timedelta(days=diff.days, seconds=time.timezone))
-        else:
-            td = abs(datetime.timedelta(days=diff.days+1, seconds=time.timezone))
+        #if start.hour == 0 and start.minute == 0 and start.second == 0:
+        #    td = abs(datetime.timedelta(days=diff.days+1, seconds=time.timezone))
+        #else:
+        td = abs(datetime.timedelta(days=diff.days, seconds=time.timezone))
 
         if dt_to_POSIX(end) > dt_to_POSIX(dt):
             newstart = start - td
