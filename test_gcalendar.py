@@ -18,7 +18,7 @@ class TestTimeFunctions(unittest.TestCase):
         self.assertEqual(gcalendar.RFC_from_UTC(dt), '2019-09-08T00:00:00Z')
 
     def test_get_utc_offset(self):
-        self.assertEqual(gcalendar.get_utc_offset(), -5)
+        self.assertEqual(gcalendar.get_utc_offset(), -4)
 
     def test_get_min_time(self):
         dt = datetime.datetime(2019, 10, 31)
@@ -30,7 +30,7 @@ class TestTimeFunctions(unittest.TestCase):
 
     def test_gmt(self):
         now = datetime.datetime.now()
-        nowtd = datetime.timedelta(hours=5)
+        nowtd = datetime.timedelta(hours=4)
         dt = datetime.datetime(2019, 6, 15, now.hour, now.minute, now.second, now.microsecond)  
         self.assertEqual(gcalendar.gmt(dt), dt + nowtd)
 
@@ -70,21 +70,24 @@ class TestTimeFunctions(unittest.TestCase):
 class TestEventFunctions(unittest.TestCase):
 
     def setUp(self):
+        #build service if doesn't already exist
         store = file.Storage('token.json')
         creds = store.get()
         if not creds or creds.invalid:
-            flow = client.flow_from_clientsecrets('credentials.json', SCOPES)
+            flow = client.flow_from_clientsecrets('credentials.json', 'https://www.googleapis.com/auth/calendar')
             creds = tools.run_flow(flow, store)
         self.service = build('calendar', 'v3', http=creds.authorize(Http()))
 
-    def tearDown(self):
-        pass
+        #new events for a random date
+        self.dt = datetime.datetime(2020, 1, 2, 0, 0, 0)
+        self.events = gcalendar.get_events(self.service, self.dt)
 
+    def tearDown(self):
+        #replace events
+        gcalendar.upload_events(self.service, self.events, self.dt)
 
     def test_get_start_and_end(self):
-        today = datetime.datetime.today()
-        events = gcalendar.get_events(self.service, today) 
-        for event in events:
+        for event in self.events:
             start = event['start']['dateTime']
             end = event['end']['dateTime']  
             
@@ -92,18 +95,9 @@ class TestEventFunctions(unittest.TestCase):
             #utc offset
             self.assertEqual((dstart.isoformat()+'-05:00', dend.isoformat()+'-05:00'), (start, end))
 
-    def test_clone_event(self):
-        #Doesn't need testing
-        pass
-
-    def test_clone_events(self):
-        #doesn't need testing
-        pass
-
     def test_save_events(self):
-        events = gcalendar.get_events(self.service, datetime.datetime.today())
         newevents = []
-        for event in events:
+        for event in self.events:
             newevent = gcalendar.clone_event(event)
             newevents.append(newevent)
         
@@ -112,18 +106,16 @@ class TestEventFunctions(unittest.TestCase):
         self.assertEqual(newevents, levents)
 
     def test_load_events(self):
-        events = gcalendar.get_events(self.service, datetime.datetime.today())
-        gcalendar.save_events(events, 'test_events.json')
-        events = gcalendar.load_events('test_events.json')
+        gcalendar.save_events(self.events, 'test_events.json')
+        self.events = gcalendar.load_events('test_events.json')
 
     def test_print_events(self):
-        events = gcalendar.get_events(self.service, datetime.datetime.today())
-        gcalendar.print_events(events)
+        gcalendar.print_events(self.events)
 
     def test_delete_events(self):
-        events = gcalendar.get_events(self.service, datetime.datetime.today())
-        gcalendar.upload_events(self.service, events, datetime.datetime(2019, 3, 3))
+        events = gcalendar.get_events(self.service, self.dt)
         gcalendar.delete_events(self.service, events)
+        self.assertEqual(gcalendar.get_events(self.service, self.dt), None)
     
 
 class TestRegexFunctions(unittest.TestCase):
@@ -134,10 +126,6 @@ class TestRegexFunctions(unittest.TestCase):
         self.relative_date_pattern = re.compile('(last|next)\s*(\w+)\s*', re.IGNORECASE)
 
     def tearDown(self):
-        pass
-
-    def test_ask_for_confirmation(self):
-        #Doesn't need testing
         pass
 
     def test_dt_from_day(self):
@@ -166,9 +154,6 @@ class TestRegexFunctions(unittest.TestCase):
 
         for s in stuff:
             self.assertEqual(True, gcalendar.is_reldate(s))
-
-    def test_dt_from_reldate(self):
-        pass
 
 if __name__ == '__main__':
     unittest.main()

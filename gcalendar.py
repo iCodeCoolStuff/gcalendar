@@ -51,10 +51,21 @@ def RFC_from_UTC(dt):
 def get_utc_offset():
     '''Returns the UTC offset of the current timezone in hours 
 
+    Takes into effect daylight savings time so you don't have to!
+
     Returns:
         int: The offset of the current timezone in hours
     '''
-    return time.localtime().tm_gmtoff / 3600
+    
+    if time.localtime().tm_gmtoff < 0:
+        sign = -1
+    else:
+        sign = -1
+
+    if not time.localtime().tm_isdst: #not daylight savings time. If it's summer, then it is daylight savings time.
+        return int(sign * time.altzone / 3600)
+    else:
+        return int(sign * time.timezone / 3600)
 
 def get_min_time(dt):
     '''Returns the very start of a certain date
@@ -394,20 +405,11 @@ def upload_events(service, events, dt):
     events = clone_events(events)
     for event in events:
         start, end = get_start_and_end(event)
-        diff = dt - start
+        min_start = get_min_time(start) #minimize start for easy comparison
+        diff = dt - min_start
 
-        #Account for difference if start starts at midnight
-        if start.hour == 0 and start.minute == 0 and start.second == 0:
-            td = abs(datetime.timedelta(days=diff.days, seconds=-(get_utc_offset()*3600)))
-        else:
-            td = abs(datetime.timedelta(days=diff.days+1, seconds=-(get_utc_offset()*3600)))
-
-        if dt_to_POSIX(end) > dt_to_POSIX(dt):
-            newstart = start - td
-            newend   = end   - td
-        else:
-            newstart = start + td
-            newend   = end   + td
+        newstart = gmt(start) + datetime.timedelta(days=diff.days)
+        newend   = gmt(end)   + datetime.timedelta(days=diff.days)
 
         event['start']['dateTime'] = RFC_from_UTC(newstart)
         event['end']['dateTime']   = RFC_from_UTC(newend)
@@ -638,14 +640,14 @@ def upload(ctx, filename, day, until, confirm):
                     pass
                 else:
                     continue
-            delete_events(ctx.obj['service'], current_events)
+            #delete_events(ctx.obj['service'], current_events)
 
         upload_events(ctx.obj['service'], events, d)
 
     if until:
-        print(f'Uploaded events from {filename} to {day}.')
-    else:
         print(f'Uploaded events from {filename} from {day} to {until}')
+    else:
+        print(f'Uploaded events from {filename} to {day}.')
     return 0
 
 @cli.command()
