@@ -63,9 +63,9 @@ def get_utc_offset():
         sign = -1
 
     if not time.localtime().tm_isdst: #not daylight savings time. If it's summer, then it is daylight savings time.
-        return int(sign * time.altzone / 3600)
-    else:
         return int(sign * time.timezone / 3600)
+    else:
+        return int(sign * time.altzone / 3600)
 
 def get_min_time(dt):
     '''Returns the very start of a certain date
