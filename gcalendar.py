@@ -868,11 +868,11 @@ def authorize(client_id, client_secret):
                              help='The client Secret of your GCP project')
     
     store = file.Storage(FILE_DIRECTORY + '\\token.json')
-    creds = store.get()
-    if not creds or creds.invalid:
-        args = argparse.ArgumentParser(parents=[tools.argparser]).parse_args()
-        flow = client.OAuth2WebServerFlow(args.client_id, args.client_secret, SCOPES)
-        creds = tools.run_flow(flow, store, tools.argparser.parse_args())
+    #creds = store.get()
+    #if not creds or creds.invalid:
+    args = argparse.ArgumentParser(parents=[tools.argparser]).parse_args()
+    flow = client.OAuth2WebServerFlow(args.client_id, args.client_secret, SCOPES)
+    tools.run_flow(flow, store, tools.argparser.parse_args())
 
     return 0
 
