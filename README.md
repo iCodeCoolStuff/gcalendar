@@ -50,7 +50,7 @@ Do `python -m unittest (test_file)`. Each one starts with a `test_` prefix.
 
 * [Google Api Client](https://developers.google.com/api-client-library/python/) - Calendar API
 * [click](https://click.palletsprojects.com/en/7.x/) - Command line tool
-* [oauth2](https://github.com/googleapis/oauth2client) - Used for HTTP requests
+* [oauth2](https://github.com/googleapis/oauth2client) - Used for authorizing applications
 
 ## License
 
