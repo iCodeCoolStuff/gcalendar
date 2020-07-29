@@ -34,7 +34,7 @@ Supported Commands:
   copy            Copies a schedule from a day to another day
   delete          Delete events from a specific day
   list            List events from a file or day
-  list_schedules  Lists all of the schedules that are currently saved
+  list-schedules  Lists all of the schedules that are currently saved
   spawn           Spawns an instance of Google Calendar in a web browser
   save            Save a schedule of events to a file
   upload          Upload events from a file to a specific date
@@ -50,7 +50,7 @@ Do `python -m unittest (test_file)`. Each one starts with a `test_` prefix.
 
 * [Google Api Client](https://developers.google.com/api-client-library/python/) - Calendar API
 * [click](https://click.palletsprojects.com/en/7.x/) - Command line tool
-* [oauth2](https://github.com/googleapis/oauth2client) - Used for HTTP requests
+* [oauth2](https://github.com/googleapis/oauth2client) - Used for authorizing applications
 
 ## License
 
