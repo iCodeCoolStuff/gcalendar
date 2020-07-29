@@ -35,7 +35,15 @@ WEEKDAYS = {
     'thursday':  4, 
     'friday':    5, 
     'saturday':  6,
-} 
+}
+
+COLOR_MAP = {
+    'orange': '6',
+    'blue': '7',
+    'red': '11',
+    'green': '2',
+    'lavender': ''
+}
 
 def RFC_from_UTC(dt):
     '''Generates a timestamp according to RFC3339
@@ -89,7 +97,11 @@ def get_max_time(dt):
         datetime.datetime: a datetime.datetime object with its hours,
             minutes, and seconds set to their maximum value
     '''
-    return datetime.datetime(dt.year, dt.month, dt.day, 23, 59, 59)
+    date = dateobj_from_dt(dt)
+    date = date + datetime.timedelta(days=1)
+
+    return datetime.datetime(date.year, date.month, date.day, 0, 0, 0)
+    #return datetime.datetime(dt.year, dt.month, dt.day, 23, 59, 59)
 
 def gmt(dt):
     '''Returns a datetime with its time set to GMT
@@ -139,7 +151,10 @@ def date_from_dt(dt):
     Returns:
         str: a date of the form YYYY-MM-DD 
     '''
-    return f'{dt.year}-{dt.month}-{dt.day}'
+    return f'{dt.year}-{dt.month:02}-{dt.day:02}'
+
+def dateobj_from_dt(dt):
+    return datetime.date.fromisoformat(date_from_dt(dt))
 
 def get_events(service, dt):
     '''Returns a list of events from a given date   
@@ -161,6 +176,19 @@ def get_events(service, dt):
     if not items:
         return None
     return items
+
+from concurrent.futures import ThreadPoolExecutor, wait
+def get_multiple_events(service, day_range):
+    threads = []
+    with ThreadPoolExecutor(max_workers=20) as executor:
+        for dt in day_range:
+            threads.append(executor.submit(get_events, service, dt))
+        
+        done, not_done = wait(threads)
+        if not_done:
+            return None
+        return [x.result() for x in done]
+
 
 def dt_to_POSIX(dt):
     '''Returns a POSIX timestamp from a datetime.datetime object
@@ -204,6 +232,20 @@ def get_min_and_max(dt):
     maxtime = get_max_time(dt)
 
     return (mintime, maxtime)
+
+def get_event_time(event):
+    '''Gets the total amount of time 
+
+        Parameters:
+            event (dict): a dict representing an event object
+
+        Returns:
+            datetime.timedelta: a timedelta object with
+                the total duration of an event
+    '''
+
+    s, e = get_start_and_end(event)
+    return e - s
 
 def get_days_of_week(dt):
     '''Returns a list of days corresponding to a week in time
@@ -875,6 +917,94 @@ def authorize(client_id, client_secret):
     tools.run_flow(flow, store, tools.argparser.parse_args())
 
     return 0
+
+
+@cli.command()
+@click.argument('color', type=str)
+@click.argument('day', type=str)
+@click.pass_context
+def sum(ctx, color, day):
+    "Sums the total amount of time spent during events of a certain color"
+    if color not in COLOR_MAP.keys():
+        print("color is not valid. Must be either 'red', 'green', 'blue', 'orange', or 'lavender'")
+        return 1
+
+    dt = dt_from_day(day)
+    events = get_events(ctx.obj['service'], dt)
+    if not events:
+        print('No events found.')
+        return 3
+    td = datetime.timedelta()
+    for e in events:
+        event_color = e.get('colorId', '')
+        if event_color == COLOR_MAP[color]:
+            st, et = get_start_and_end(e)
+            if dateobj_from_dt(st) < dateobj_from_dt(dt):
+                td = td + (et - get_min_time(et))
+            elif dateobj_from_dt(dt) < dateobj_from_dt(et):
+                td = td + (get_max_time(st) - st)
+            else:
+                td = td + get_event_time(e)
+        
+    print(f'{int(td.total_seconds() // 3600)} hour(s) and {int((td.total_seconds() - (td.total_seconds()//3600)*3600) / 60)} minutes')
+
+
+@cli.command()
+@click.argument('color', type=str)
+@click.argument('start', type=str)
+@click.argument('end', type=str)
+@click.pass_context
+def bigsum(ctx, color, start, end):
+    if color not in COLOR_MAP.keys():
+        print("color is not valid. Must be either 'red', 'green', 'blue', 'orange', or 'lavender'")
+        return 1
+    
+    s = dt_from_day(start)
+    e = dt_from_day(end)
+
+    if not s or not e:
+        print('Invalid date. Must either be a day of the week or of the form YYYY-MM-DD.')
+        return 1
+    
+    if not s < e:
+        print('Invalid date range. Please make sure your range is in order.')
+        return 2
+    
+    td = datetime.timedelta()
+    for dt in get_day_range(s, e):
+        events = get_events(ctx.obj['service'], dt)
+        if not events:
+            continue
+        for e in events:
+            event_color = e.get('colorId', '')
+            if event_color == COLOR_MAP[color]:
+                st, et = get_start_and_end(e)
+                if dateobj_from_dt(st) < dateobj_from_dt(dt):
+                    td = td + (et - get_min_time(et))
+                elif dateobj_from_dt(dt) < dateobj_from_dt(et):
+                    td = td + (get_max_time(st) - st)
+                else:
+                    td = td + get_event_time(e)
+        
+    print(f'{int(td.total_seconds() // 3600)} hour(s) and {int((td.total_seconds() - (td.total_seconds()//3600)*3600) / 60)} minutes')
+
+
+'''@cli.command()
+@click.pass_context
+@click.argument('dt', type=str)
+def printe(ctx, dt):
+    d = dt_from_day(dt)
+    print(get_events(ctx.obj['service'], d))
+
+@cli.command()
+@click.argument('dt1', type=str)
+@click.argument('dt2', type=str)
+@click.pass_context
+def printev(ctx, dt1, dt2):
+    s = dt_from_day(dt1)
+    e = dt_from_day(dt2)
+    dr = get_day_range(s, e)
+    print(get_multiple_events(ctx.obj['service'], dr))'''
 
 if __name__ == '__main__':
     cli()
